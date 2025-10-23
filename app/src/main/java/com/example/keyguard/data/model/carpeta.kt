@@ -1,4 +1,7 @@
 package com.example.keyguard.data.model
 
-class carpeta {
-}
+data class carpeta(
+    val id: Int,
+    val nombre: String,
+    val descripcion: String? = null
+)
