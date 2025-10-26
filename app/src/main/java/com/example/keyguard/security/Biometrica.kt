@@ -5,7 +5,6 @@ import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 
-
 sealed class AuthResult {
     object Exito : AuthResult()
     object Fallo : AuthResult()
@@ -15,30 +14,39 @@ sealed class AuthResult {
 class Biometrica(private val activity: FragmentActivity) {
 
     fun autenticar(
-
         onResultado: (AuthResult) -> Unit
     ) {
-
         val biometricManager = BiometricManager.from(activity)
-        val authenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL
+
+        // ↓↓↓ ESTA ES LA LÍNEA QUE ARREGLA EL CRASH ↓↓↓
+        // Nos enfocamos solo en la biometría fuerte (huella/rostro) para evitar conflictos.
+        val authenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG
 
         when (biometricManager.canAuthenticate(authenticators)) {
             BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> {
-                onResultado(AuthResult.Error("Este dispositivo no tiene sensor de huella."))
+                onResultado(AuthResult.Error("Este dispositivo no tiene sensor biométrico."))
                 return
             }
             BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> {
-                onResultado(AuthResult.Error("El sensor de huella no está disponible ahora."))
+                onResultado(AuthResult.Error("El sensor biométrico no está disponible ahora."))
                 return
             }
             BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> {
-                onResultado(AuthResult.Error("No tienes una huella registrada."))
+                // Este es el error más común en emuladores.
+                onResultado(AuthResult.Error("No tienes una huella o rostro registrado."))
                 return
             }
-
+            BiometricManager.BIOMETRIC_SUCCESS -> {
+                // Todo está en orden, podemos continuar.
+            }
+            else -> {
+                // Otros posibles errores no fatales.
+                onResultado(AuthResult.Error("El servicio biométrico no está disponible."))
+                return
+            }
         }
 
-
+        // El resto de tu código estaba perfecto, no necesita cambios.
         val executor = ContextCompat.getMainExecutor(activity)
 
         val callback = object : BiometricPrompt.AuthenticationCallback() {
@@ -55,9 +63,9 @@ class Biometrica(private val activity: FragmentActivity) {
             override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                 super.onAuthenticationError(errorCode, errString)
                 if (errorCode != BiometricPrompt.ERROR_USER_CANCELED && errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON) {
-                    onResultado(AuthResult.Error("Error de autenticación: $errString"))
+                    onResultado(AuthResult.Error("Error: $errString"))
                 }
-
+                // No llamamos a onResultado si el usuario cancela, para no mostrar un Toast de error.
             }
         }
 
@@ -68,7 +76,6 @@ class Biometrica(private val activity: FragmentActivity) {
             .setSubtitle("Usa tu huella para continuar")
             .setNegativeButtonText("Cancelar")
             .build()
-
 
         biometricPrompt.authenticate(promptInfo)
     }

@@ -17,22 +17,20 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.keyguard.R
-import com.example.keyguard.security.AuthResult
-import com.example.keyguard.security.Biometrica
-import com.example.keyguard.ui.theme.KeyGuardTheme
 import com.example.keyguard.viewmodel.MainViewModel
+import com.example.keyguard.ui.theme.KeyGuardTheme
 
 @Composable
 fun HomeScreen(
-    modifier: Modifier = Modifier,
+
     navController: NavController,
-    viewModel: MainViewModel = viewModel()
+    activity: FragmentActivity,
+    mainViewModel: MainViewModel = viewModel()
 ) {
 
-    val context = LocalContext.current
 
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.Center,
@@ -42,42 +40,25 @@ fun HomeScreen(
             painter = painterResource(id = R.drawable.keyguardtest),
             contentDescription = "Logo app",
             modifier = Modifier
-                .fillMaxWidth(0.7f) // Usamos una fracción del ancho para que no sea tan grande
+                .fillMaxWidth(0.7f)
                 .height(150.dp),
             contentScale = ContentScale.Fit
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        val localContextForToast = LocalContext.current
 
         Button(onClick = {
 
-            val activity = context as? FragmentActivity
+            mainViewModel.iniciarAutenticacion(activity) { resultado ->
 
-
-            if (activity != null) {
-                val biometrica = Biometrica(activity)
-
-
-                biometrica.autenticar { resultado ->
-
-                    when (resultado) {
-                        is AuthResult.Exito -> {
-                            Toast.makeText(context, "¡Autenticación Exitosa!", Toast.LENGTH_SHORT).show()
-
-                        }
-                        is AuthResult.Fallo -> {
-
-                        }
-                        is AuthResult.Error -> {
-
-                            Toast.makeText(context, resultado.mensaje, Toast.LENGTH_LONG).show()
-                        }
-                    }
+                val mensaje = when (resultado) {
+                    is com.example.keyguard.security.AuthResult.Exito -> "¡Autenticación Exitosa!"
+                    is com.example.keyguard.security.AuthResult.Fallo -> "Autenticación fallida."
+                    is com.example.keyguard.security.AuthResult.Error -> "Error: ${resultado.mensaje}"
                 }
-            } else {
-
-                Toast.makeText(context, "No se pudo iniciar la autenticación.", Toast.LENGTH_LONG).show()
+                Toast.makeText(localContextForToast, mensaje, Toast.LENGTH_SHORT).show()
             }
         }) {
             Text("Desbloquear con Huella")
@@ -86,10 +67,13 @@ fun HomeScreen(
 }
 
 
+
+
 @Preview(showBackground = true)
 @Composable
 fun HomeScreenPreview() {
     KeyGuardTheme {
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
