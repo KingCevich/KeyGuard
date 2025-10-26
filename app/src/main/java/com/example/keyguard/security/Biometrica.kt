@@ -1,65 +1,75 @@
 package com.example.keyguard.security
 
-import android.content.Context
-import android.widget.Toast
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 
 
-class Biometrica(private val context: Context) {
+sealed class AuthResult {
+    object Exito : AuthResult()
+    object Fallo : AuthResult()
+    data class Error(val mensaje: String) : AuthResult()
+}
+
+class Biometrica(private val activity: FragmentActivity) {
+
+    fun autenticar(
+
+        onResultado: (AuthResult) -> Unit
+    ) {
+
+        val biometricManager = BiometricManager.from(activity)
+        val authenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL
+
+        when (biometricManager.canAuthenticate(authenticators)) {
+            BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> {
+                onResultado(AuthResult.Error("Este dispositivo no tiene sensor de huella."))
+                return
+            }
+            BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> {
+                onResultado(AuthResult.Error("El sensor de huella no está disponible ahora."))
+                return
+            }
+            BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> {
+                onResultado(AuthResult.Error("No tienes una huella registrada."))
+                return
+            }
+
+        }
 
 
-    private val promptInfo: BiometricPrompt.PromptInfo = BiometricPrompt.PromptInfo.Builder()
-        .setTitle("Autenticación Biométrica")
-        .setSubtitle("Inicia sesión usando tu huella o rostro")
-        .setNegativeButtonText("Cancelar")
-        .build()
-
-    private fun setupBiometricPrompt(
-        onSuccess: (BiometricPrompt.AuthenticationResult) -> Unit,
-        onError: (Int, CharSequence) -> Unit,
-        onFailure: () -> Unit
-    ): BiometricPrompt {
-        val executor = ContextCompat.getMainExecutor(context)
-        val activity = context as? FragmentActivity
-            ?: throw IllegalStateException("El contexto debe ser una FragmentActivity para usar BiometricPrompt")
+        val executor = ContextCompat.getMainExecutor(activity)
 
         val callback = object : BiometricPrompt.AuthenticationCallback() {
             override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                 super.onAuthenticationSucceeded(result)
-                onSuccess(result)
-            }
-
-            override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                super.onAuthenticationError(errorCode, errString)
-                onError(errorCode, errString)
+                onResultado(AuthResult.Exito)
             }
 
             override fun onAuthenticationFailed() {
                 super.onAuthenticationFailed()
-                onFailure()
+                onResultado(AuthResult.Fallo)
+            }
+
+            override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                super.onAuthenticationError(errorCode, errString)
+                if (errorCode != BiometricPrompt.ERROR_USER_CANCELED && errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON) {
+                    onResultado(AuthResult.Error("Error de autenticación: $errString"))
+                }
+
             }
         }
-        return BiometricPrompt(activity, executor, callback)
-    }
+
+        val biometricPrompt = BiometricPrompt(activity, executor, callback)
+
+        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Desbloquear KeyGuard")
+            .setSubtitle("Usa tu huella para continuar")
+            .setNegativeButtonText("Cancelar")
+            .build()
 
 
-    fun authenticate(
-        onSuccess: (BiometricPrompt.AuthenticationResult) -> Unit,
-        onError: (Int, CharSequence) -> Unit = { _, _ -> },
-        onFailure: () -> Unit = {}
-    ) {
-        val biometricManager = BiometricManager.from(context)
-
-        if (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS) {
-
-            val biometricPrompt = setupBiometricPrompt(onSuccess, onError, onFailure)
-            biometricPrompt.authenticate(promptInfo)
-        } else {
-
-            Toast.makeText(context, "No se puede autenticar con biometría en este dispositivo.", Toast.LENGTH_LONG).show()
-        }
+        biometricPrompt.authenticate(promptInfo)
     }
 }
