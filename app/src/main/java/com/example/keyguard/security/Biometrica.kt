@@ -1,82 +1,110 @@
 package com.example.keyguard.security
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.Intent
+import android.os.Build
+import android.provider.Settings
+import android.util.Log
 import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
+import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 
-sealed class AuthResult {
-    object Exito : AuthResult()
-    object Fallo : AuthResult()
-    data class Error(val mensaje: String) : AuthResult()
+private const val TAG = "KeyGuard/Bio"
+
+sealed class BioStatus {
+    data object Success : BioStatus()
+    data object NoHardware : BioStatus()
+    data object HWUnavailable : BioStatus()
+    data object NoneEnrolled : BioStatus()
+    data object Unknown : BioStatus()
 }
 
-class Biometrica(private val activity: FragmentActivity) {
+/** Estado de capacidad biométrica detallado. */
+fun biometricsStatus(activity: FragmentActivity): BioStatus {
+    val bm = BiometricManager.from(activity)
+    val authenticators = BIOMETRIC_STRONG or DEVICE_CREDENTIAL
+    return when (bm.canAuthenticate(authenticators)) {
+        BiometricManager.BIOMETRIC_SUCCESS -> BioStatus.Success
+        BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> BioStatus.NoHardware
+        BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> BioStatus.HWUnavailable
+        BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> BioStatus.NoneEnrolled
+        else -> BioStatus.Unknown
+    }
+}
 
-    fun autenticar(
-        onResultado: (AuthResult) -> Unit
-    ) {
-        val biometricManager = BiometricManager.from(activity)
+/** Atajo “booleano” si solo quieres saber si se puede autenticar. */
+fun canUseBiometrics(activity: FragmentActivity): Boolean =
+    biometricsStatus(activity) == BioStatus.Success
 
-        // ↓↓↓ ESTA ES LA LÍNEA QUE ARREGLA EL CRASH ↓↓↓
-        // Nos enfocamos solo en la biometría fuerte (huella/rostro) para evitar conflictos.
-        val authenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG
-
-        when (biometricManager.canAuthenticate(authenticators)) {
-            BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> {
-                onResultado(AuthResult.Error("Este dispositivo no tiene sensor biométrico."))
-                return
+/** Abre pantalla del sistema para enrolar huella/PIN si falta. */
+fun launchEnroll(activity: Activity) {
+    try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val intent = Intent(Settings.ACTION_BIOMETRIC_ENROLL).apply {
+                putExtra(
+                    Settings.EXTRA_BIOMETRIC_AUTHENTICATORS_ALLOWED,
+                    BIOMETRIC_STRONG or DEVICE_CREDENTIAL
+                )
             }
-            BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> {
-                onResultado(AuthResult.Error("El sensor biométrico no está disponible ahora."))
-                return
-            }
-            BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> {
-                // Este es el error más común en emuladores.
-                onResultado(AuthResult.Error("No tienes una huella o rostro registrado."))
-                return
-            }
-            BiometricManager.BIOMETRIC_SUCCESS -> {
-                // Todo está en orden, podemos continuar.
-            }
-            else -> {
-                // Otros posibles errores no fatales.
-                onResultado(AuthResult.Error("El servicio biométrico no está disponible."))
-                return
-            }
+            activity.startActivity(intent)
+        } else {
+            // En APIs < 30 no hay intent específico; abrimos seguridad general
+            activity.startActivity(Intent(Settings.ACTION_SECURITY_SETTINGS))
         }
+    } catch (t: Throwable) {
+        Log.e(TAG, "No se pudo abrir enrolamiento: ${t.message}", t)
+    }
+}
 
-        // El resto de tu código estaba perfecto, no necesita cambios.
+/** Muestra el BiometricPrompt con defensas (try/catch). */
+fun showBiometricPrompt(
+    activity: FragmentActivity,
+    onSuccess: () -> Unit,
+    onFail: (msg: String) -> Unit
+) {
+    try {
         val executor = ContextCompat.getMainExecutor(activity)
 
         val callback = object : BiometricPrompt.AuthenticationCallback() {
             override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                super.onAuthenticationSucceeded(result)
-                onResultado(AuthResult.Exito)
+                onSuccess()
             }
-
-            override fun onAuthenticationFailed() {
-                super.onAuthenticationFailed()
-                onResultado(AuthResult.Fallo)
-            }
-
             override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                super.onAuthenticationError(errorCode, errString)
-                if (errorCode != BiometricPrompt.ERROR_USER_CANCELED && errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON) {
-                    onResultado(AuthResult.Error("Error: $errString"))
-                }
-                // No llamamos a onResultado si el usuario cancela, para no mostrar un Toast de error.
+                onFail("Error: $errString")
+            }
+            override fun onAuthenticationFailed() {
+                // huella no reconocida; el prompt sigue
             }
         }
 
-        val biometricPrompt = BiometricPrompt(activity, executor, callback)
+        val prompt = BiometricPrompt(activity, executor, callback)
 
+        // ⚠️ NO mezclar negativeButton con DEVICE_CREDENTIAL.
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
             .setTitle("Desbloquear KeyGuard")
-            .setSubtitle("Usa tu huella para continuar")
-            .setNegativeButtonText("Cancelar")
+            .setSubtitle("Usa huella o PIN/patrón")
+            .setConfirmationRequired(true)
+            .setAllowedAuthenticators(BIOMETRIC_STRONG or DEVICE_CREDENTIAL)
             .build()
 
-        biometricPrompt.authenticate(promptInfo)
+        prompt.authenticate(promptInfo)
+    } catch (t: Throwable) {
+        Log.e(TAG, "Fallo al abrir prompt: ${t.message}", t)
+        onFail("No se pudo abrir el prompt biométrico.")
     }
+}
+
+/** Helper para obtener FragmentActivity desde un Context (Compose: LocalContext). */
+fun Context.findActivity(): FragmentActivity? {
+    var ctx = this
+    while (ctx is ContextWrapper) {
+        if (ctx is FragmentActivity) return ctx
+        ctx = ctx.baseContext
+    }
+    return null
 }

@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <style name="Theme.KeyGuard" parent="Theme.Material3.DayNight">
+        <!-- Oculta la ActionBar (equivalente a NoActionBar) -->
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
 
-    <style name="Theme.KeyGuard" parent="android:Theme.Material.Light.NoActionBar" />
+        <!-- Opcional -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
 </resources>

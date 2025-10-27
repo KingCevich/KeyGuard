@@ -1,97 +1,101 @@
 package com.example.keyguard.ui
 
-import android.widget.Toast
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.keyguard.R
-import com.example.keyguard.viewmodel.MainViewModel
-import com.example.keyguard.ui.theme.KeyGuardTheme
+import com.example.keyguard.security.BioStatus
+import com.example.keyguard.security.biometricsStatus
+import com.example.keyguard.security.findActivity
+import com.example.keyguard.security.launchEnroll
+import com.example.keyguard.security.showBiometricPrompt
+import kotlinx.coroutines.launch
 
 @Composable
-fun HomeScreen(
+fun HomeScreen(navController: NavController) {
+    val context = LocalContext.current
+    val activity = remember { context.findActivity() } // puede ser null brevemente
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    var alreadyTried by remember { mutableStateOf(false) }
 
-    navController: NavController,
-    activity: FragmentActivity,
-    mainViewModel: MainViewModel = viewModel()
-) {
-
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Image(
-            painter = painterResource(id = R.drawable.keyguardtest),
-            contentDescription = "Logo app",
-            modifier = Modifier
-                .fillMaxWidth(0.7f)
-                .height(150.dp),
-            contentScale = ContentScale.Fit
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        val localContextForToast = LocalContext.current
-
-        Button(onClick = {
-
-            mainViewModel.iniciarAutenticacion(activity) { resultado ->
-
-                val mensaje = when (resultado) {
-                    is com.example.keyguard.security.AuthResult.Exito -> "¡Autenticación Exitosa!"
-                    is com.example.keyguard.security.AuthResult.Fallo -> "Autenticación fallida."
-                    is com.example.keyguard.security.AuthResult.Error -> "Error: ${resultado.mensaje}"
+    // Dispara una vez cuando ya tenemos Activity disponible
+    LaunchedEffect(activity) {
+        if (!alreadyTried && activity != null) {
+            alreadyTried = true
+            when (biometricsStatus(activity)) {
+                BioStatus.Success -> {
+                    showBiometricPrompt(
+                        activity = activity,
+                        onSuccess = {
+                            scope.launch { snackbarHostState.showSnackbar("Autenticado ✅") }
+                            // navController.navigate("panel")
+                        },
+                        onFail = { msg ->
+                            scope.launch { snackbarHostState.showSnackbar(msg) }
+                        }
+                    )
                 }
-                Toast.makeText(localContextForToast, mensaje, Toast.LENGTH_SHORT).show()
+                BioStatus.NoneEnrolled -> {
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Configura huella o PIN en el sistema.")
+                    }
+                    launchEnroll(activity)
+                }
+                BioStatus.NoHardware -> {
+                    scope.launch { snackbarHostState.showSnackbar("Sin hardware biométrico.") }
+                    // aquí puedes navegar a un login de PIN propio
+                }
+                BioStatus.HWUnavailable -> {
+                    scope.launch { snackbarHostState.showSnackbar("Hardware biométrico no disponible.") }
+                }
+                BioStatus.Unknown -> {
+                    scope.launch { snackbarHostState.showSnackbar("Biometría no soportada.") }
+                }
             }
-        }) {
-            Text("Desbloquear con Huella")
         }
     }
-}
 
+    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { _ ->
+        Column(Modifier.fillMaxSize()) {
+            Text("KeyGuard", style = MaterialTheme.typography.headlineSmall)
 
-
-
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenPreview() {
-    KeyGuardTheme {
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.keyguardtest),
-                contentDescription = "Logo app",
-                modifier = Modifier
-                    .fillMaxWidth(0.7f)
-                    .height(150.dp),
-                contentScale = ContentScale.Fit
-            )
-            Spacer(modifier = Modifier.height(32.dp))
-            Button(onClick = { }) {
-                Text("Desbloquear con Huella")
+            Button(onClick = {
+                val act = activity ?: return@Button
+                when (biometricsStatus(act)) {
+                    BioStatus.Success -> {
+                        showBiometricPrompt(
+                            activity = act,
+                            onSuccess = {
+                                scope.launch { snackbarHostState.showSnackbar("Autenticado ✅") }
+                            },
+                            onFail = { msg -> scope.launch { snackbarHostState.showSnackbar(msg) } }
+                        )
+                    }
+                    BioStatus.NoneEnrolled -> {
+                        scope.launch { snackbarHostState.showSnackbar("Configura huella o PIN.") }
+                        launchEnroll(act)
+                    }
+                    BioStatus.NoHardware -> {
+                        scope.launch { snackbarHostState.showSnackbar("Sin hardware biométrico.") }
+                    }
+                    BioStatus.HWUnavailable -> {
+                        scope.launch { snackbarHostState.showSnackbar("Hardware no disponible.") }
+                    }
+                    BioStatus.Unknown -> {
+                        scope.launch { snackbarHostState.showSnackbar("No soportado.") }
+                    }
+                }
+            }) {
+                Text("Desbloquear con huella")
             }
         }
     }

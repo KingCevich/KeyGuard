@@ -1,29 +1,25 @@
 package com.example.keyguard.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.fragment.app.FragmentActivity // <-- PASO 1: AÑADE ESTE IMPORT
-import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.keyguard.ui.HomeScreen // Asegúrate de que este import sea el de tu pantalla
+import androidx.navigation.compose.rememberNavController
+import com.example.keyguard.ui.HomeScreen
 
 @Composable
-fun AppNavigation(
-    modifier: Modifier = Modifier,
-    navController: NavHostController,
-    activity: FragmentActivity
-) {
+fun AppNavigation() {
+    val navController = rememberNavController()
+
     NavHost(
         navController = navController,
-        startDestination = "home_screen" // O como se llame tu ruta
+        startDestination = "home"
     ) {
-        composable("home_screen") {
-
-            HomeScreen(
-                navController = navController,
-                activity = activity
-            )
+        composable("home") {
+            // ⬇️ ¡OJO! HomeScreen YA NO recibe 'activity'
+            HomeScreen(navController = navController)
         }
+
+        // Ejemplo de otra ruta si luego la usas
+        // composable("panel") { PanelScreen(navController) }
     }
 }
