@@ -20,12 +20,12 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreen(navController: NavController) {
     val context = LocalContext.current
-    val activity = remember { context.findActivity() }          // puede ser null brevemente
+    val activity = remember { context.findActivity() }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var alreadyTried by remember { mutableStateOf(false) }
 
-    // Dispara una vez cuando ya tenemos Activity disponible
+    // Autenticación al abrir (si procede)
     LaunchedEffect(activity) {
         if (!alreadyTried && activity != null) {
             alreadyTried = true
@@ -33,10 +33,7 @@ fun HomeScreen(navController: NavController) {
                 BioStatus.Success -> {
                     showBiometricPrompt(
                         activity = activity,
-                        onSuccess = {
-                            scope.launch { snackbarHostState.showSnackbar("Autenticado") }
-                            // navController.navigate("panel")
-                        },
+                        onSuccess = { scope.launch { snackbarHostState.showSnackbar("Autenticado") } },
                         onFail = { msg -> scope.launch { snackbarHostState.showSnackbar(msg) } }
                     )
                 }
@@ -44,23 +41,15 @@ fun HomeScreen(navController: NavController) {
                     scope.launch { snackbarHostState.showSnackbar("Configura huella o PIN en el sistema.") }
                     launchEnroll(activity)
                 }
-                BioStatus.NoHardware -> {
-                    scope.launch { snackbarHostState.showSnackbar("Sin hardware biométrico.") }
-                }
-                BioStatus.HWUnavailable -> {
-                    scope.launch { snackbarHostState.showSnackbar("Hardware biométrico no disponible.") }
-                }
-                BioStatus.Unknown -> {
-                    scope.launch { snackbarHostState.showSnackbar("Biometría no soportada.") }
-                }
+                BioStatus.NoHardware -> scope.launch { snackbarHostState.showSnackbar("Sin hardware biométrico.") }
+                BioStatus.HWUnavailable -> scope.launch { snackbarHostState.showSnackbar("Hardware biométrico no disponible.") }
+                BioStatus.Unknown -> scope.launch { snackbarHostState.showSnackbar("Biometría no soportada.") }
             }
         }
     }
 
     Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(title = { Text("KeyGuard") })
-        },
+        topBar = { CenterAlignedTopAppBar(title = { Text("KeyGuard") }) },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { inner ->
         Box(
@@ -68,15 +57,26 @@ fun HomeScreen(navController: NavController) {
                 .fillMaxSize()
                 .padding(inner)
         ) {
+            // Contenedor centrado con ancho cómodo
             Column(
                 modifier = Modifier
+                    .align(Alignment.Center)
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
-                    .align(Alignment.Center),
+                    .widthIn(max = 420.dp), // evita que se vea demasiado ancho en tablets
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Botón: Agregar contraseña
+                // 1) Ver contraseñas guardadas
+                Button(
+                    onClick = { navController.navigate("saved_passwords") },
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(vertical = 14.dp)
+                ) {
+                    Text("Ver contraseñas guardadas")
+                }
+
+                // 2) Agregar contraseña
                 Button(
                     onClick = { navController.navigate("add_password") },
                     modifier = Modifier.fillMaxWidth(),
@@ -85,33 +85,26 @@ fun HomeScreen(navController: NavController) {
                     Text("Agregar contraseña")
                 }
 
-                // Botón: Desbloquear con huella
+                // 3) Desbloquear con huella
                 OutlinedButton(
                     onClick = {
                         val act = activity ?: return@OutlinedButton
                         when (biometricsStatus(act)) {
-                            BioStatus.Success -> {
-                                showBiometricPrompt(
-                                    activity = act,
-                                    onSuccess = {
-                                        scope.launch { snackbarHostState.showSnackbar("Autenticado") }
-                                    },
-                                    onFail = { msg -> scope.launch { snackbarHostState.showSnackbar(msg) } }
-                                )
-                            }
+                            BioStatus.Success -> showBiometricPrompt(
+                                activity = act,
+                                onSuccess = { scope.launch { snackbarHostState.showSnackbar("Autenticado") } },
+                                onFail = { msg -> scope.launch { snackbarHostState.showSnackbar(msg) } }
+                            )
                             BioStatus.NoneEnrolled -> {
                                 scope.launch { snackbarHostState.showSnackbar("Configura huella o PIN.") }
                                 launchEnroll(act)
                             }
-                            BioStatus.NoHardware -> {
+                            BioStatus.NoHardware ->
                                 scope.launch { snackbarHostState.showSnackbar("Sin hardware biométrico.") }
-                            }
-                            BioStatus.HWUnavailable -> {
+                            BioStatus.HWUnavailable ->
                                 scope.launch { snackbarHostState.showSnackbar("Hardware no disponible.") }
-                            }
-                            BioStatus.Unknown -> {
+                            BioStatus.Unknown ->
                                 scope.launch { snackbarHostState.showSnackbar("No soportado.") }
-                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
