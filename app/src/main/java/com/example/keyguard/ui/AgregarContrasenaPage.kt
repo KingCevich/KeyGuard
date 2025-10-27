@@ -9,15 +9,20 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.keyguard.security.*
 import com.example.keyguard.data.model.contrasena
+import com.example.keyguard.security.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -37,14 +42,52 @@ fun AgregarContrasenaPage(
     var pin by remember { mutableStateOf("") }
     var creatingPin by remember { mutableStateOf(false) }
 
+    var isLoading by remember { mutableStateOf(false) }
+
+
+    val textFieldColors = TextFieldDefaults.colors(
+        focusedTextColor = Color.White,
+        unfocusedTextColor = Color.White,
+        focusedLabelColor = Color.White,
+        unfocusedLabelColor = Color.Gray,
+        cursorColor = Color.White,
+        focusedIndicatorColor = Color.White,
+        unfocusedIndicatorColor = Color.Gray,
+        focusedContainerColor = Color.Transparent,
+        unfocusedContainerColor = Color.Transparent
+    )
+
+    LaunchedEffect(isLoading) {
+        if (isLoading) {
+            delay(800)
+            val c = contrasena(
+                id = 0,
+                contra = contra,
+                carpetaId = null,
+                nombre = nombre.trim(),
+                key = null,
+                descripcionpas = descripcionpas.trim().ifBlank { null }
+            )
+            onConfirmSave(c)
+            Toast.makeText(ctx, "Guardado", Toast.LENGTH_SHORT).show()
+            navController.popBackStack()
+        }
+    }
+
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(title = { Text("Crear contraseña") })
+            CenterAlignedTopAppBar(
+                title = { Text("Crear contraseña") },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color(0xFF1C1C1C),
+                    titleContentColor = Color.White
+                )
+            )
         },
         snackbarHost = { SnackbarHost(snackbar) },
+        containerColor = Color(0xFF121212),
         bottomBar = {
-            // Botón fijo inferior, con padding seguro
-            Surface(tonalElevation = 3.dp) {
+            Surface(tonalElevation = 3.dp, color = Color(0xFF1C1C1C)) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -56,26 +99,19 @@ fun AgregarContrasenaPage(
                                 scope.launch { snackbar.showSnackbar("Completa nombre y contraseña") }
                                 return@Button
                             }
+
+
                             val act = ctx.findActivity()
                             if (act != null && canUseBiometrics(act)) {
                                 showBiometricPrompt(
                                     activity = act,
                                     onSuccess = {
-                                        val c = contrasena(
-                                            id = 0,
-                                            contra = contra,
-                                            carpetaId = null,
-                                            nombre = nombre.trim(),
-                                            key = null,
-                                            descripcionpas = descripcionpas.trim().ifBlank { null }
-                                        )
-                                        onConfirmSave(c)
-                                        Toast.makeText(ctx, "Guardado ✅", Toast.LENGTH_SHORT).show()
-                                        navController.popBackStack()
+                                        isLoading = true
                                     },
                                     onFail = {
                                         creatingPin = !PinManager.hasPin(ctx)
                                         showPinDialog = true
+                                        isLoading = false
                                     }
                                 )
                             } else {
@@ -84,7 +120,8 @@ fun AgregarContrasenaPage(
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        contentPadding = PaddingValues(vertical = 14.dp)
+                        contentPadding = PaddingValues(vertical = 14.dp),
+                        enabled = !isLoading
                     ) {
                         Text("Guardar")
                     }
@@ -92,107 +129,61 @@ fun AgregarContrasenaPage(
             }
         }
     ) { inner ->
-        // Contenido scrollable con buen padding
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(inner)
-                .padding(horizontal = 20.dp, vertical = 12.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(inner),
+            contentAlignment = Alignment.Center
         ) {
-            OutlinedTextField(
-                value = nombre,
-                onValueChange = { nombre = it },
-                label = { Text("Nombre") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                modifier = Modifier.fillMaxWidth()
-            )
+            if (isLoading) {
+                CircularProgressIndicator(color = Color.White)
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 20.dp, vertical = 12.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedTextField(
+                        value = nombre,
+                        onValueChange = { nombre = it },
+                        label = { Text("Nombre") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = textFieldColors
+                    )
 
-            OutlinedTextField(
-                value = contra,
-                onValueChange = { contra = it },
-                label = { Text("Contraseña") },
-                singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Next
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
+                    OutlinedTextField(
+                        value = contra,
+                        onValueChange = { contra = it },
+                        label = { Text("Contraseña") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Next
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = textFieldColors
+                    )
 
-            OutlinedTextField(
-                value = descripcionpas,
-                onValueChange = { descripcionpas = it },
-                label = { Text("Descripción (opcional)") },
-                minLines = 3,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 100.dp)
-            )
-
-            // Espacio para que el contenido no quede oculto detrás del botón inferior
-            Spacer(Modifier.height(90.dp))
+                    OutlinedTextField(
+                        value = descripcionpas,
+                        onValueChange = { descripcionpas = it },
+                        label = { Text("Descripción (opcional)") },
+                        minLines = 3,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 100.dp),
+                        colors = textFieldColors
+                    )
+                    Spacer(Modifier.height(90.dp))
+                }
+            }
         }
     }
 
-    // Diálogo de PIN
-    if (showPinDialog) {
-        AlertDialog(
-            onDismissRequest = { showPinDialog = false; pin = "" },
-            title = { Text(if (creatingPin) "Configurar PIN" else "Confirmar con PIN") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(if (creatingPin) "Crea un PIN de 4–6 dígitos" else "Ingresa tu PIN")
-                    OutlinedTextField(
-                        value = pin,
-                        onValueChange = { if (it.length <= 6) pin = it.filter(Char::isDigit) },
-                        singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                        label = { Text("PIN") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    if (pin.length < 4) {
-                        scope.launch { snackbar.showSnackbar("El PIN debe tener al menos 4 dígitos") }
-                        return@TextButton
-                    }
-                    if (creatingPin) {
-                        PinManager.setPin(ctx, pin)
-                        Toast.makeText(ctx, "PIN configurado", Toast.LENGTH_SHORT).show()
-                        showPinDialog = false
-                        pin = ""
-                    } else {
-                        val ok = PinManager.verify(ctx, pin)
-                        if (ok) {
-                            val c = contrasena(
-                                id = 0,
-                                contra = contra,
-                                carpetaId = null,
-                                nombre = nombre.trim(),
-                                key = null,
-                                descripcionpas = descripcionpas.trim().ifBlank { null }
-                            )
-                            onConfirmSave(c)
-                            showPinDialog = false
-                            pin = ""
-                            Toast.makeText(ctx, "Guardado ✅", Toast.LENGTH_SHORT).show()
-                            navController.popBackStack()
-                        } else {
-                            scope.launch { snackbar.showSnackbar("PIN incorrecto") }
-                        }
-                    }
-                }) { Text(if (creatingPin) "Guardar PIN" else "Confirmar") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showPinDialog = false; pin = "" }) { Text("Cancelar") }
-            }
-        )
-    }
+    if (showPinDialog) {}
 }

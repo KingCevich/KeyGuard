@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.keyguard" // AJUSTA
+    namespace = "com.example.keyguard"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.keyguard" // AJUSTA
+        applicationId = "com.example.keyguard"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
@@ -18,7 +18,7 @@ android {
 
     buildFeatures { compose = true }
 
-    // ¡Clave! Alinear a Java 17
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -42,5 +42,5 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
 }
 
-// Fuerza toolchain a JDK 17
+
 kotlin { jvmToolchain(17) }

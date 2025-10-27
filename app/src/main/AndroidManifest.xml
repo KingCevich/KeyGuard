@@ -2,16 +2,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.keyguard">
 
-    <!-- Permiso opcional (no requiere runtime). Está OK tenerlo. -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
 
     <application
         android:allowBackup="true"
         android:supportsRtl="true"
         android:label="KeyGuard"
-        android:theme="@style/Theme.KeyGuard">
+        android:theme="@style/Theme.KeyGuard"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round">
 
-    <activity
+        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
