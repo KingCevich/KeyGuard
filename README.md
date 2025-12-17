@@ -2,7 +2,7 @@
   <img src="keyguard2.png" alt="KeyGuard Logo" width="46" height="46" style="margin-right: 10px; vertical-align: middle;"/>
   <span style="position: relative; top: -4px;">KeyGuard</span>
 </h1>
----
+
 
 **KeyGuard** es una aplicación móvil diseñada para poder gestionar contraseñas por medios de de seguridad como biometrica, sistema de cifrado y descifrado.
 
