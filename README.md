@@ -1,11 +1,8 @@
 <p align="center">
-  <table>
-    <tr>
-      <td><img src="keyguard2.png" alt="KeyGuard Logo" width="42" height="42"></td>
-      <td><h1 style="margin: 0; padding-left: 10px;">KeyGuard</h1></td>
-    </tr>
-  </table>
+  <img src="keyguard2.png" alt="KeyGuard Logo" width="42" height="42" style="vertical-align: middle; margin-right: 8px;">
+  <span style="font-size: 2em; font-weight: bold; vertical-align: middle;">KeyGuard</span>
 </p>
+
 
 
 
