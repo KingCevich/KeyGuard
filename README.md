@@ -36,18 +36,15 @@
 
 ##  Arquitectura del proyecto
 
-app/
-│
-├── data/
-│ ├── model/ **Modelos de datos (Contrasena, Carpeta, Usuario)**
-│ ├── remote/ **ApiService + RetrofitInstance**
-│ └── repository/ ** Repositorios de datos**
-│
-├── ui/
-│ ├── screens/ **Pantallas Compose**
-│ └── components/ **Componentes UI reutilizables**
-│
-├── viewmodel/ **ViewModels (MVVM)**
+- app/
+ - data/
+└── model/ **Modelos de datos (Contrasena, Carpeta, Usuario)**
+└── remote/ **ApiService + RetrofitInstance**
+└── repository/ ** Repositorios de datos**
+  - ui/
+└──  screens/ **Pantallas Compose**
+└── components/ **Componentes UI reutilizables**
+ - viewmodel/ **ViewModels (MVVM)**
 └── tests/ ** Pruebas unitarias**
 
 
