@@ -39,13 +39,13 @@
 - app/
  - data/
    -  model/ **Modelos de datos (Contrasena, Carpeta, Usuario)**
-   - remote/ **ApiService + RetrofitInstance**
+   -  remote/ **ApiService + RetrofitInstance**
    -  repository/ ** Repositorios de datos**
-  - ui/
-   - screens/ **Pantallas Compose**
-   - components/ **Componentes UI reutilizables**
+ - ui/
+   -  screens/ **Pantallas Compose**
+   -  components/ **Componentes UI reutilizables**
  - viewmodel/ **ViewModels (MVVM)**
- - tests/ ** Pruebas unitarias**
+ - tests/ **Pruebas unitarias**
 
 
 
