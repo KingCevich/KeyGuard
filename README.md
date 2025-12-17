@@ -1,4 +1,4 @@
-##  <h1 align="center" style="display: flex; align-items: center; justify-content: center;">
+<h1 align="center" style="display: flex; align-items: center; justify-content: center;">
   <img src="keyguard2.png" alt="KeyGuard Logo" width="46" height="46" style="margin-right: 10px; vertical-align: middle;"/>
   <span style="position: relative; top: -4px;">KeyGuard</span>
 </h1>
