@@ -1,4 +1,4 @@
-# ![KeyGuard Logo](assets/keyguard2.png) KeyGuard
+# ![KeyGuard](keyguard2.png) 
 
 **KeyGuard** es una aplicación móvil diseñada para poder gestionar contraseñas por medios de de seguridad como biometrica, sistema de cifrado y descifrado.
 
@@ -62,7 +62,7 @@ app/
     Sincronizar proyecto con Grandle.
 
 📱 Capturas de pantalla
-<p align="center"> <img src="assets/login.png" width="240" /> <img src="assets/inicio.png" width="240" /> <img src="assets/crearcontra.png" width="240" /> <img src="assets/getcontras.png" width="240" /> </p>
+<p align="center"> <img src="login.png" width="240" /> <img src="inicio.png" width="240" /> <img src="crearcontra.png" width="240" /> <img src="getcontras.png" width="240" /> </p>
 
 
 ##Ideas pensadas para futuras versiones:
