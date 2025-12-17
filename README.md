@@ -1,6 +1,6 @@
 <h1 align="center">
   <img src="keyguard2.png" alt="KeyGuard Logo" width="44" height="44" style="vertical-align: middle; margin-right: 8px;">
-  <span style="vertical-align: middle; position: relative; top: -6px;">KeyGuard</span>
+  <span style="vertical-align: middle; position: relative; top: 8px;">KeyGuard</span>
 </h1>
 
 
