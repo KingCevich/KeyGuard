@@ -1,4 +1,5 @@
-# ![KeyGuard](keyguard2.png) 
+##  <p><img src="keyguard2.png" alt="KeyGuard Logo" width="85"></p> KeyGuard
+---
 
 **KeyGuard** es una aplicación móvil diseñada para poder gestionar contraseñas por medios de de seguridad como biometrica, sistema de cifrado y descifrado.
 
@@ -45,27 +46,31 @@ app/
 └── tests/ ** Pruebas unitarias**
 
 
+
+
+
 ---
 
  Instalación
 
-    Clonar el repositorio:
+   Clonar el repositorio:
 
     git clone https://github.com/tu-usuario/KeyGuard.git
 
-    Abrir el proyecto en Android Studio.
+   Abrir el proyecto en Android Studio.
 
-    Ejecutar en un emulador o dispositivo Android.
+   Ejecutar en un emulador o dispositivo Android.
 
-    Asegurarse de tener Internet para las llamadas a API.
+   Asegurarse de tener Internet para las llamadas a API.
 
-    Sincronizar proyecto con Grandle.
+   Sincronizar proyecto con Grandle.
 
 📱 Capturas de pantalla
 <p align="center"> <img src="login.png" width="240" /> <img src="inicio.png" width="240" /> <img src="crearcontra.png" width="240" /> <img src="getcontras.png" width="240" /> </p>
 
 
-##Ideas pensadas para futuras versiones:
+##  Ideas pensadas para futuras versiones:
+
 **Seguridad**
 
    - Implementar cifrado real de contraseñas antes de guardarlas localmente o enviarlas a la nube.
@@ -79,7 +84,7 @@ app/
 
    - Integración completa con un backend desplegado (por ejemplo en Render), sin depender solo de MockAPI.
 
-** UI**
+**UI**
 
    - Modo oscuro responsivo.
 
